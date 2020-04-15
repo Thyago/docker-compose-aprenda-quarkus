@@ -1,0 +1,95 @@
+version: "3.7"
+
+networks:
+  public:
+    driver: bridge
+  private:
+    driver: bridge
+  db:
+    driver: bridge
+
+services:
+
+  ### PostGres (Database) ####################################
+  postgres:
+    image: "postgres:alpine"
+    networks:
+      - db
+    env_file:
+      - ./postgres/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - 54320:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ### Jaeger (Tracing) ######################################
+  jaeger:
+    image: "jaegertracing/all-in-one:latest"
+    networks:
+      - private
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+
+  ### Prometheus (Monitoring) ##############################
+  prometheus:
+    image: "prom/prometheus"
+    networks:
+      - default
+      - private
+    volumes:
+      - ./prometheus/:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - 9090:9090
+    restart: always
+      
+  ### Grafana (Dashboard for Monitoring)####################
+  grafana:
+    image: "grafana/grafana"
+    networks:
+      - private
+      - public
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    env_file:
+      - ./grafana/.env
+    ports:
+      - 3000:3000
+    depends_on:
+      - prometheus    
+    restart: always
+      
+  ### KeyCloak (Identity and Authorization) #################
+  keycloak:
+    image: "quay.io/keycloak/keycloak:latest"
+    networks:
+      - public
+      - db
+    env_file:
+      - ./keycloak/.env
+    ports:
+      - 8180:8080
+    depends_on:
+      - postgres    
+      
+volumes:
+  postgres_data:
+    driver: local
+  prometheus_data: {}
+  grafana_data: {}
