@@ -1,0 +1,5 @@
+CREATE DATABASE aprendaquarkus;
+GRANT ALL PRIVILEGES ON DATABASE aprendaquarkus TO admin;
+
+CREATE DATABASE keycloak;
+GRANT ALL PRIVILEGES ON DATABASE keycloak TO admin;

@@ -19,6 +19,7 @@ services:
       - ./postgres/.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/docker-entrypoint-initdb.d/:/docker-entrypoint-initdb.d/
     ports:
       - 54320:5432
     healthcheck:
